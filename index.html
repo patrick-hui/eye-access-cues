@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eye Access Cues</title>
+<meta name="description" content="Live eye-movement tracker that shows NLP eye accessing cues (VAK) from the front or back camera.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Eye Access Cues</h1>
+    <p>Visual · Auditory · Kinesthetic eye-movement tracker</p>
+  </div>
+  <div class="status" id="status" role="status" data-tone="idle">Camera off</div>
+</header>
+
+<main class="layout">
+  <section class="stage-col" aria-label="Camera">
+    <div class="stage" id="stage">
+      <div class="mirror" id="mirror">
+        <video id="video" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div class="badge" id="badge" hidden></div>
+      <div class="placeholder" id="placeholder">
+        <p class="ph-title">Track eye movements live</p>
+        <p class="ph-text">Point the camera at a face about 30–60 cm away, in even light. Everything runs on this device; no video leaves the browser.</p>
+        <button id="startBtn" class="btn primary" type="button">Start camera</button>
+        <p class="ph-warn" id="secureHint" hidden>The camera needs a secure page. Open this app over <strong>https://</strong> or from <strong>localhost</strong>.</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Choose camera">
+        <button id="frontBtn" class="seg-btn" type="button" aria-pressed="true">Front camera</button>
+        <button id="backBtn" class="seg-btn" type="button" aria-pressed="false">Back camera</button>
+      </div>
+      <label class="field" for="cameraSelect">
+        <span>Device</span>
+        <select id="cameraSelect" disabled><option>Start the camera to list devices</option></select>
+      </label>
+      <label class="check" for="mirrorToggle"><input type="checkbox" id="mirrorToggle" checked> Mirror view</label>
+    </div>
+    <div class="controls">
+      <button id="calibrateBtn" class="btn" type="button" disabled>Calibrate centre</button>
+      <button id="stopBtn" class="btn ghost" type="button" disabled>Stop camera</button>
+      <p class="calib-note" id="calibNote">After starting, look straight into the lens and press <strong>Calibrate centre</strong>. Recalibrate whenever the phone or head position changes.</p>
+    </div>
+  </section>
+
+  <section class="cue-col" aria-label="Eye accessing cue">
+    <div class="readout" id="readout" data-system="none">
+      <div class="ro-code" id="roCode">·</div>
+      <div class="ro-body">
+        <div class="ro-mode" id="roMode">No cue</div>
+        <div class="ro-name" id="roName">Centred</div>
+        <div class="ro-desc" id="roDesc">Start the camera, or drag the dot on the gaze pad below to try the chart.</div>
+        <div class="ro-dir" id="roDir">Eyes forward</div>
+      </div>
+    </div>
+
+    <div class="grid-head">
+      <span id="gridPerspective">Mirror view: boxes match the subject's own left and right.</span>
+    </div>
+    <div class="grid" id="grid" role="list"></div>
+
+    <ul class="legend" aria-label="Legend">
+      <li data-system="visual"><i></i>Visual</li>
+      <li data-system="auditory"><i></i>Auditory</li>
+      <li data-system="kinesthetic"><i></i>Kinesthetic</li>
+      <li data-system="digital"><i></i>Auditory digital</li>
+      <li class="lg-mode"><i class="solid"></i>Recall</li>
+      <li class="lg-mode"><i class="striped"></i>Construct</li>
+    </ul>
+  </section>
+</main>
+
+<section class="lower">
+  <div class="panel">
+    <h2>Gaze pad</h2>
+    <canvas id="pad" class="pad" width="240" height="240" aria-label="Current gaze position. Drag to simulate when the camera is off."></canvas>
+    <dl class="nums">
+      <div><dt>Horizontal</dt><dd id="numX">0.00</dd></div>
+      <div><dt>Vertical</dt><dd id="numY">0.00</dd></div>
+      <div><dt>Frame rate</dt><dd id="numFps">–</dd></div>
+    </dl>
+    <p class="hint">The dashed box is the centre zone. With the camera off, drag the dot to preview the cues.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Sensitivity</h2>
+    <label class="slider" for="txRange"><span>Left / right threshold <output id="txOut">0.35</output></span>
+      <input type="range" id="txRange" min="0.1" max="1" step="0.05" value="0.35"></label>
+    <label class="slider" for="tyRange"><span>Up / down threshold <output id="tyOut">0.35</output></span>
+      <input type="range" id="tyRange" min="0.1" max="1" step="0.05" value="0.35"></label>
+    <label class="slider" for="smoothRange"><span>Smoothing <output id="smoothOut">0.50</output></span>
+      <input type="range" id="smoothRange" min="0" max="0.9" step="0.05" value="0.5"></label>
+    <label class="slider" for="holdRange"><span>Hold before showing <output id="holdOut">150 ms</output></span>
+      <input type="range" id="holdRange" min="0" max="600" step="25" value="150"></label>
+    <label class="check" for="reverseToggle"><input type="checkbox" id="reverseToggle"> Reversed organisation (swap recall and construct sides)</label>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h2>Cue history</h2>
+      <button id="clearBtn" class="btn small ghost" type="button">Clear</button>
+    </div>
+    <ol class="history" id="history"></ol>
+    <p class="hint" id="historyEmpty">Each eye movement held past the threshold is listed here with how long it lasted.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Practice questions</h2>
+    <p class="hint">Ask the subject a question, then watch where the eyes go first.</p>
+    <div class="prompt-btns" id="promptBtns"></div>
+    <blockquote class="prompt" id="promptText">Pick a sensory system to get a question.</blockquote>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Eye accessing cues come from Bandler and Grinder's NLP model and describe a typical right-handed pattern. Controlled studies have not confirmed that eye direction reliably shows recall versus construction, so treat the result as a teaching aid, not a lie detector. Webcam gaze estimation is also approximate; calibrate first and keep the head still.</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
